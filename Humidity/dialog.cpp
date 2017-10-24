@@ -18,9 +18,21 @@ Dialog::Dialog(QWidget *parent) :
     ui->humidity_lcdNumber->display("-------");
     ui->humidity_lcdNumber1->display("-------");
   //  connect(ui->start_pushbutton,SIGNAL(clicked(bool)),ui->time_lcdNumber,SLOT(display(double)))
+  //  ui->plot->graph(0)->setAdaptiveSampling(0);                                                     // this line of code crashes the program! dont know why!
     ui->plot->addGraph();
-    ui->plot->graph(0)->setScatterStyle(QCPScatterStyle::ssCircle);
-    ui->plot->graph(0)->setLineStyle(QCPGraph::lsNone);
+    ui->plotA->addGraph();
+    ui->plot->graph()->setPen(QPen(Qt::blue));
+    ui->plotA->graph(0)->setPen(QPen(Qt::red));
+    ui->plot->xAxis->setLabel("Time(Seconds)");
+    ui->plot->yAxis->setLabel("Relative Humidity(%)");
+    ui->plotA->xAxis->setLabel("Time(Seconds)");
+    ui->plotA->yAxis->setLabel("Resistance");
+    ui->plot->graph()->setScatterStyle(QCPScatterStyle::ssCircle);
+    ui->plot->graph()->setLineStyle(QCPGraph::lsLine);
+    ui->plotA->graph(0)->setScatterStyle(QCPScatterStyle::ssCircle);
+    ui->plotA->graph(0)->setLineStyle(QCPGraph::lsLine);
+    ui->plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    ui->plotA->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     arduino =new QSerialPort(this);
     serialBuffer="";
 
@@ -86,13 +98,15 @@ void Dialog::readSerial()
         qDebug()<<buffersplit;
         while(i>1){
         Dialog::updateLCD(buffersplit[1],buffersplit[0]);
-        humidity= (double) buffersplit[1];   //humidity is buffersplit[1]
-        resistance= (double) buffersplit[0];  //voltage or resistance is buffersplit[0]
-        connect(timer,SIGNAL(timeout()),this,SLOT(Plot_humidity(humidity,qv_time)));
-        connect(timer,SIGNAL(timeout()),this,SLOT(Plot_resisitance(resistance,qv_time)));
+
+       // humidity= hum.toDouble();   //humidity is buffersplit[1]
+       // resistance= res.toDouble();  //voltage or resistance is buffersplit[0]
+        time+=1;
+   //     connect(timer,SIGNAL(timeout()),this,SLOT(Plot_humidity(double humidity,double time)));
+   //     connect(timer,SIGNAL(timeout()),this,SLOT(Plot_resisitance(double res,double time)));
         timer->start(1000);
-     //   Dialog::Plot_humidity(humidity,temp_time)
-     //   Dialog::Plot_resisitance(resistance,temp_time)
+   //   Plot_humidity(ui->humidity_lcdNumber->display(sensor_reading),time);
+    //  Dialog::Plot_resisitance(ui->humidity_lcdNumber1->display(sensor_reading1),time);
          break;
 
         }
@@ -104,21 +118,43 @@ void Dialog::readSerial()
 void Dialog:: updateLCD(QString sensor_reading, QString sensor_reading1){
         ui->humidity_lcdNumber->display(sensor_reading);
          ui->humidity_lcdNumber1->display(sensor_reading1);
+         ui->time_lcdNumber->display(time);
+    add_Point_humidity(ui->time_lcdNumber->value(),ui->humidity_lcdNumber->value());
+//    add_Point_resistance(ui->time_lcdNumber->value(),ui->humidity_lcdNumber1->value());
+
+
     }
 
 
+void Dialog:: Plot_humidity(){
 
-void Dialog:: Plot_humidity(const QVector<double> humidity,const QVector <double>  qv_time){
-    ui->plot->graph()->setData(humidity,qv_time);
+    ui->plot->graph()->setData(qv_time,humidity);
     ui->plot->replot();
     ui->plot->update();
+    ui->plot->graph()->rescaleAxes();
+
 
 }
 /*
-void Dialog::Plot_resisitance(resistance, qv_time){
-    ui->plot->graph()->setData(resistance,time);
-    ui->plot->replot();
-    ui->plot->update();
+void Dialog::Plot_resisitance(){
+    ui->plotA->graph(0)->setData(qv_time,resistance);
+    ui->plotA->replot();
+    ui->plotA->update();
+    ui->plotA->graph(0)->rescaleAxes();
+}
+*/
+void Dialog:: add_Point_humidity(double time,double hum){
+    humidity.append(hum);
+    qv_time.append(time);
+    Plot_humidity();
+}
+/*
+void Dialog:: add_Point_resistance(double time,double res){
+    humidity.append(res);
+    qv_time.append(time);
+    Plot_resisitance();
+
 
 }
+
 */

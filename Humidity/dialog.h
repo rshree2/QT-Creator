@@ -17,11 +17,16 @@ public:
     explicit Dialog(QWidget *parent = 0);
     ~Dialog();
 
+public slots:
+   void add_Point_humidity(double time, double hum);
+    void add_Point_resistance(double time, double res);
+    void Plot_resisitance();
 private slots:
     void readSerial();
     void updateLCD(QString sensor_reading, QString sensor_reading1);
-    void Plot_humidity(const QVector<double> humidity,const QVector <double> qv_time);
-    void Plot_resisitance(const QVector<double> resistance,const QVector<double> qv_time);
+    void Plot_humidity();
+
+
 
 
 private:
@@ -34,9 +39,10 @@ private:
     QString serialBuffer;
     QByteArray serialData;
     qint8 i=1;
-    qint16 time=0;
+    double time =0;
     QString sensor_reading, sensor_reading1;
-    QVector<double> qv_time,humidity,temp_time,resistance;
+    QVector <double> humidity,resistance;
+    QVector <double> qv_time;
 
 };
 
