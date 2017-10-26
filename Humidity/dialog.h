@@ -19,13 +19,13 @@ public:
 
 public slots:
    void add_Point_humidity(double time, double hum);
-    void add_Point_resistance(double time, double res);
-    void Plot_resisitance();
+   void add_Point_resistance(double time, double res);
+   void Plot_resisitance();
 private slots:
     void readSerial();
     void updateLCD(QString sensor_reading, QString sensor_reading1);
     void Plot_humidity();
-
+    void Configure_Port();
 
 
 
@@ -39,11 +39,15 @@ private:
     QString serialBuffer;
     QByteArray serialData;
     qint8 i=1;
-    double time =0;
+    int time =0;
     QString sensor_reading, sensor_reading1;
     QVector <double> humidity,resistance;
     QVector <double> qv_time;
-
+    bool arduino_is_available;
+    bool is_port_opened;
+    QString arduino_portname;
+    QString stop= "STOP";
+    QString start= "START";
 };
 
 #endif // DIALOG_H
