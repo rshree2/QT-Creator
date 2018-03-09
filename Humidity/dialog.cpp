@@ -49,11 +49,16 @@ Dialog::Dialog(QWidget *parent) :
     ui->plot_temp->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     arduino =new QSerialPort(this);
     serialBuffer="";
-  if(!file.is_open())
-    {
-        qDebug()<<"File not Found,retry........";
 
-    }
+    ///LET'S TRY THIS...
+    qv_time.append(0);
+    humidity.append(0);
+    resistance.append(0);
+    temperature.append(0);
+    ///===================
+
+
+
 
    qDebug()<<"Number of ports :"<<QSerialPortInfo::availablePorts().length()<<"\n";
        foreach(const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()){
@@ -65,38 +70,11 @@ Dialog::Dialog(QWidget *parent) :
         is_port_opened=false;
         arduino_is_available=false;
         QObject::connect(ui->start_pushButton,SIGNAL(released()),this,SLOT(Configure_Port()));
+        QObject::connect(arduino,SIGNAL(readyRead()),this,SLOT(readSerial()));
         QObject::connect(timer,SIGNAL(timeout()),this,SLOT(updateLCD(QString sensor_reading,QString sensor_reading1,QString sensor_reading2)));
 
+
     }
-//--------------------------------------------------------------------------------------------------------------------------------
-/*
-   foreach(const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()){
-       if (serialPortInfo.hasProductIdentifier() && serialPortInfo.hasVendorIdentifier()){
-           if (serialPortInfo.productIdentifier()==arduino_product_id && serialPortInfo.vendorIdentifier()==arduino_vendor_id){
-               arduino_is_availabe=true;
-               arduino_portname=serialPortInfo.portName();
-           }
-
-       }
-   }
-
-   if(arduino_is_availabe){
-       qDebug()<<"Found the port";
-       arduino->setPortName(arduino_portname);
-       arduino->open(QSerialPort::ReadOnly);
-       arduino->setBaudRate(QSerialPort::Baud9600);
-       arduino->setDataBits(QSerialPort::Data8);
-       arduino->setFlowControl(QSerialPort::NoFlowControl);
-       arduino->setParity(QSerialPort::NoParity);
-       arduino->setStopBits(QSerialPort::OneStop);
-       QObject::connect(arduino,SIGNAL(readyRead()),this,SLOT(readSerial()));
-   }else{
-       qDebug()<<"port cannot be found";
-       QMessageBox::information(this, "serial port error", "cant open serial port to arduino");
-   }
-*/
-
-//--------------------------------------------------------------------------------------------------------------------------------
 
 Dialog::~Dialog()
 {
@@ -113,7 +91,7 @@ void Dialog::readSerial()
        serialData= arduino->readAll();
         serialBuffer+= QString::fromStdString(serialData.toStdString());
       }else{
-        qDebug()<<buffersplit << time;
+        qDebug()<<buffersplit << time <<endl;
 
        if(i>1){
            Dialog::updateLCD(buffersplit[0],buffersplit[1],buffersplit[2]);
@@ -124,48 +102,55 @@ void Dialog::readSerial()
         }
     }
 
+
 void Dialog:: updateLCD(QString sensor_reading, QString sensor_reading1, QString sensor_reading2){
     qDebug() << "size: " << buffersplit.size() << "\n";
-         ui->humidity_lcdNumber->display(sensor_reading);
-         ui->humidity_lcdNumber1->display(sensor_reading1);
-         ui->temperature_lcdNumber->display(sensor_reading2);
-        time+=1;
-         ui->time_lcdNumber->display(time);
+
          if(j==1){
              file<<"TIME"<<"\t"<<"RH%"<<"\t"<<"TEMPERATURE"<<"\t"<<"RESISTANCE"<<endl;
          }
          j=2;
+         time+=1;
+         ui->humidity_lcdNumber->display(sensor_reading);
+         ui->humidity_lcdNumber1->display(sensor_reading1);
+         ui->temperature_lcdNumber->display(sensor_reading2);
+         ui->time_lcdNumber->display(time);
          qv_time.append(ui->time_lcdNumber->value());
+
          add_Point_humidity(ui->humidity_lcdNumber->value());
          add_Point_resistance(ui->humidity_lcdNumber1->value());
          add_Point_temperature(ui->temperature_lcdNumber->value());
+
          file<<ui->time_lcdNumber->value()<<"\t";
          file<<ui->humidity_lcdNumber->value()<<"\t";
          file<<ui->humidity_lcdNumber1->value()<<"\t\t";
          file<<ui->temperature_lcdNumber->value()<<endl;
+
     }
 
 
 void Dialog:: Plot_humidity(){
     ui->plot->graph()->addData(qv_time,humidity);
+    ui->plot->graph()->rescaleAxes();
     ui->plot->replot();
     ui->plot->update();
-    ui->plot->graph()->rescaleAxes();
+
 }
 
 void Dialog::Plot_resisitance(){
     ui->plotA->graph()->addData(qv_time,resistance);
+    ui->plotA->graph()->rescaleAxes();
     ui->plotA->replot();
     ui->plotA->update();
-    ui->plotA->graph()->rescaleAxes();
+
 }
 
 void Dialog::Plot_temperature(){
     ui->plot_temp->graph()->addData(qv_time,temperature);
-    ui->plot_temp->replot();
-   // qDebug()<<qv_time;
-    ui->plot_temp->update();
     ui->plot_temp->graph()->rescaleAxes();
+    ui->plot_temp->replot();
+    ui->plot_temp->update();
+
 
 }
 
@@ -186,7 +171,13 @@ void Dialog::add_Point_temperature(double temp){
 
 
 void Dialog::Configure_Port()
-{  if(!is_port_opened){
+{
+    if(!file.is_open())
+    {
+        qDebug()<<"File not Found,retry........";
+
+    }
+    if(!is_port_opened){
     file.open("/home/roshan/Documents/test_test.txt",ios_base::out |ios_base::app);
     foreach(const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()){
         if (serialPortInfo.hasProductIdentifier() && serialPortInfo.hasVendorIdentifier()){
@@ -201,15 +192,25 @@ void Dialog::Configure_Port()
     if(arduino_is_available){
         qDebug()<<"Found the port";
         arduino->setPortName(arduino_portname);
-        arduino->open(QSerialPort::ReadOnly);
+        arduino->open(QSerialPort::ReadWrite);
         arduino->setBaudRate(QSerialPort::Baud9600);
         arduino->setDataBits(QSerialPort::Data8);
         arduino->setFlowControl(QSerialPort::NoFlowControl);
         arduino->setParity(QSerialPort::NoParity);
         arduino->setStopBits(QSerialPort::OneStop);
-        QObject::connect(arduino,SIGNAL(readyRead()),this,SLOT(readSerial()));
+
+/*
+            const char *a= "A\n";
+            arduino->write(a, 2);
+            while(!(arduino->waitForReadyRead(5000)))
+                qDebug() << arduino->bytesAvailable();
+            qDebug()<< a << "written to the port";
+*/
+
+
         timer->start(1000);
         ui->start_pushButton->setText(stop);
+
     } else{
         qDebug()<<"port cannot be found";
         QMessageBox::information(this, "serial port error", "cant open serial port to arduino");
